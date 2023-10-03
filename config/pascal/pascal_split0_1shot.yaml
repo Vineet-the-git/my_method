@@ -38,7 +38,7 @@ TRAIN:
   novel_num: 5  
   start_val_epoch: 40
   evaluate: True  
-  only_evaluate: False
+  only_evaluate: True
   num_sp: 2
   ### DATASET
   use_coco: False

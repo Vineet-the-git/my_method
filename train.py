@@ -113,7 +113,7 @@ def get_new_proto(val_supp_loader, model, base_num=16, novel_num=5, init_gen_pro
                 input = input.repeat(8, 1, 1, 1, 1, 1)
                 target = target.repeat(8, 1, 1, 1, 1)
 
-                gened_proto = model(x=input, y=target, iter=i, eval_model=False, gen_proto=True, \
+                gened_proto = model(x=input, y=target, s_init_seed=s_init_seed, iter=i, eval_model=False, gen_proto=True, \
                         base_num=base_num, novel_num=novel_num)
                 gened_proto = gened_proto.mean(0)
             gened_proto_bed = gened_proto_bed + gened_proto            
@@ -136,7 +136,7 @@ def main_worker(gpu, ngpus_per_node, argss):
     criterion = nn.CrossEntropyLoss(ignore_index=args.ignore_label)
 
     model = PSPNet(layers=args.layers, classes=args.classes, \
-        zoom_factor=args.zoom_factor, criterion=criterion, BatchNorm=BatchNorm, \
+        zoom_factor=args.zoom_factor, num_sp=args.num_sp, criterion=criterion, BatchNorm=BatchNorm, \
         pretrained=True, args=args)
     optimizer = torch.optim.SGD(
         [{'params': model.layer0.parameters()},
@@ -339,7 +339,7 @@ def train(train_loader, model, optimizer, epoch):
     model.train()
     end = time.time()
     max_iter = args.epochs * len(train_loader)
-    for i, (input, target, _, s_seed_init, _) in enumerate(train_loader):
+    for i, (input, target, _, s_init_seed, _) in enumerate(train_loader):
         data_time.update(time.time() - end)
         current_iter = epoch * len(train_loader) + i + 1
         poly_learning_rate(optimizer, args.base_lr, current_iter, max_iter, power=args.power)
@@ -349,7 +349,7 @@ def train(train_loader, model, optimizer, epoch):
             target = F.interpolate(target.unsqueeze(1).float(), size=(h, w), mode='bilinear', align_corners=True).squeeze(1).long()
         input = input.cuda(non_blocking=True)
         target = target.cuda(non_blocking=True)
-        output, main_loss, aux_loss = model(x=input, y=target, iter=i)
+        output, main_loss, aux_loss = model(x=input, y=target, s_init_seed = s_init_seed, iter=i)
         if not args.multiprocessing_distributed:
             main_loss, aux_loss = torch.mean(main_loss), torch.mean(aux_loss)
         loss = main_loss + args.aux_weight * aux_loss 
@@ -438,7 +438,7 @@ def validate(val_supp_loader, val_loader, model, criterion, novel_num, base_num,
 
     with torch.no_grad():
         gened_proto = gened_proto.unsqueeze(0).repeat(8, 1, 1)        
-        for i, (input, target, ori_size, s_seed_init, ori_label) in enumerate(val_loader):
+        for i, (input, target, ori_size, s_init_seed, ori_label) in enumerate(val_loader):
             data_time.update(time.time() - end)
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)

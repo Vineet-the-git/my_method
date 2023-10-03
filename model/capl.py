@@ -35,7 +35,7 @@ class PPM(nn.Module):
 
 class PSPNet(nn.Module):
     def __init__(self, layers=50, bins=(1, 2, 3, 6), dropout=0.1, classes=2, \
-        zoom_factor=8, criterion=nn.CrossEntropyLoss(ignore_index=255), \
+        zoom_factor=8, num_sp = 1,criterion=nn.CrossEntropyLoss(ignore_index=255), \
         BatchNorm=nn.BatchNorm2d, pretrained=True, args=None):
         super(PSPNet, self).__init__()
         assert layers in [50, 101, 152]
@@ -99,12 +99,11 @@ class PSPNet(nn.Module):
 
         self.args = args
 
-    def forward(self, x, y=None, gened_proto=None, base_num=16, novel_num=5, iter=None, \
+    def forward(self, x, y=None, s_init_seed = None, gened_proto=None, base_num=16, novel_num=5, iter=None, \
                 gen_proto=False, eval_model=False, visualize=False):
 
         self.iter = iter
         self.base_num = base_num
-
         def WG(x, y, proto, target_cls):
             b, c, h, w = x.size()[:]
             tmp_y = F.interpolate(y.float().unsqueeze(1), size=(h, w), mode='nearest') 
