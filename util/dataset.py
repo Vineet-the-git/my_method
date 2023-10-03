@@ -2,9 +2,14 @@ import os
 import os.path
 import cv2
 import numpy as np
-import random
+
 from torch.utils.data import Dataset
+from seed_init import place_seed_points
+
+import torch.nn.functional as F
 import torch
+import random
+import time
 from tqdm import tqdm
 
 # manual_seed=123
@@ -141,8 +146,8 @@ def make_dataset(split='train', data_root=None, data_list=None, data_split=0, sh
 class SemData(Dataset):
     def __init__(self, split='train', data_root=None, data_list=None, \
         transform=None, data_split=0, shot=10, seed=123, \
-        use_coco=False, val_shot=10):
-
+        use_coco=False, val_shot=10, num_sp=5):
+        self.num_sp = num_sp
         if use_coco:
             print('INFO: using COCO')
             self.class_list = list(range(1, 81))
@@ -228,7 +233,7 @@ class SemData(Dataset):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # convert cv2 read image from BGR order to RGB order
         image = np.float32(image)
         label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)  # GRAY 1 channel ndarray with shape H * W
-
+      
         label_class = np.unique(label).tolist()
         if 0 in label_class:
             label_class.remove(0)
@@ -244,6 +249,7 @@ class SemData(Dataset):
             elif c in self.sub_val_list:
                 label[x[:], y[:]] = (self.sub_val_list.index(c) + self.base_class_num)
 
+
         if image.shape[0] != label.shape[0] or image.shape[1] != label.shape[1]:
             raise (RuntimeError("Image & label shape mismatch: " + image_path + " " + label_path + "\n"))
         raw_size = torch.Tensor(label.shape[:])
@@ -254,4 +260,37 @@ class SemData(Dataset):
         if self.transform is not None:
             image, label = self.transform(image, label)
 
-        return image, label, raw_size, raw_label_mask
+        # add code for initial seeding
+        init_seed_list = []
+        label_classes = np.unique(label).tolist()
+        temp_label = label.copy()
+        if 0 in label_class:
+            label_class.remove(0)
+        if 255 in label_class:
+            label_class.remove(255)
+        print("shape of temp label: ",temp_label.shape)
+        for c in label_class:
+            mask = (label==c)*1.0
+            init_seed = place_seed_points(mask, down_stride=8, max_num_sp=self.num_sp, avg_sp_area=100)
+            init_seed_list.append(init_seed.unsqueeze(0))
+
+        s_init_seed = torch.cat(init_seed_list, 0)  # (num_classes, num_sp, 2)
+
+        return image, label, raw_size, s_init_seed, raw_label_mask
+
+
+# if __name__=="__main__":
+#     lists= "/home/vineet/Desktop/gfss_whole/my_method/lists/pascal/train_aug.txt"
+#     val_list = "/home/vineet/Desktop/gfss_whole/my_method/lists/pascal/val.txt"
+#     root_dir = "./dataset/VOC2012/"
+#     dataset = SemData(split='train', data_root=root_dir, data_list=lists, shot=1, val_shot=1)
+#     unique = []
+#     for i in tqdm(range(len(dataset))):
+#         _,label,_, seed, _  = dataset[i]
+#         clas_uniq = list(np.unique(label))
+#         for j in clas_uniq:
+#             if j not in unique:
+#                 unique.append(j)
+#         print(seed.shape)
+
+#     print(sorted(unique))
