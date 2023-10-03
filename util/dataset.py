@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from torch.utils.data import Dataset
-from seed_init import place_seed_points
+from util.seed_init import place_seed_points
 
 import torch.nn.functional as F
 import torch
@@ -263,17 +263,19 @@ class SemData(Dataset):
         # add code for initial seeding
         init_seed_list = []
         label_classes = np.unique(label).tolist()
-        temp_label = label.copy()
-        if 0 in label_class:
-            label_class.remove(0)
-        if 255 in label_class:
-            label_class.remove(255)
-        print("shape of temp label: ",temp_label.shape)
-        for c in label_class:
-            mask = (label==c)*1.0
-            init_seed = place_seed_points(mask, down_stride=8, max_num_sp=self.num_sp, avg_sp_area=100)
+        temp_label = label.clone()
+        if 0 in label_classes:
+            label_classes.remove(0)
+        if 255 in label_classes:
+            label_classes.remove(255)
+        for c in range(21):
+            if c not in label_classes:
+                init_seed = torch.zeros([self.num_sp,2])-1
+            if c in label_classes:
+                mask = (label==c)*1.0
+                init_seed = place_seed_points(mask, down_stride=8, max_num_sp=self.num_sp, avg_sp_area=100)
             init_seed_list.append(init_seed.unsqueeze(0))
-
+                
         s_init_seed = torch.cat(init_seed_list, 0)  # (num_classes, num_sp, 2)
 
         return image, label, raw_size, s_init_seed, raw_label_mask

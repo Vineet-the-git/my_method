@@ -33,6 +33,7 @@ def place_seed_points(mask, down_stride=8, max_num_sp=5, avg_sp_area=100):
 		# cropping to bounding box around ROI
 		m_np_roi = np.copy(m_np_down)[p[0]:pend[0] + 1, p[1]:pend[1] + 1]
 
+		# num_sp is fixed
 		num_sp = int(max_num_sp)
 
 	else:
