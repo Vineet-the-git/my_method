@@ -40,6 +40,8 @@ TRAIN:
   evaluate: True  
   only_evaluate: True
   num_sp: 2
+  train_iter: 10
+  eval_iter: 5
   ### DATASET
   use_coco: False
   val_supp_seed_list: [123, 321, 456, 654, 999]
