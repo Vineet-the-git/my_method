@@ -30,7 +30,7 @@ TRAIN:
   manual_seed: 321
   print_freq: 20
   save_freq: 10
-  save_path: exp/pascal/split0_1shot_train/model
+  save_path: exp/pascal/split0_1shot/model
   weight: ./initmodel/resnet_v2.pth
   resume:  
   data_split: 0
@@ -38,8 +38,10 @@ TRAIN:
   novel_num: 5  
   start_val_epoch: 40
   evaluate: True  
-  only_evaluate: False
-
+  only_evaluate: True
+  num_sp: 2
+  train_iter: 10
+  eval_iter: 5
   ### DATASET
   use_coco: False
   val_supp_seed_list: [123, 321, 456, 654, 999]
